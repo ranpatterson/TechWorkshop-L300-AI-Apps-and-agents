@@ -47,7 +47,7 @@ async def _timed_call(tool_name: str, arguments: Dict[str, Any]) -> Any:
         return result
     except Exception as e:
         elapsed = time.perf_counter() - start
-        logger.error(f"[MCP] {tool_name} failed after {elapsed:.3f}s: {e}")
+        logger.error(f"[MCP] {tool_name} failed after {elapsed:.3f}s: {e}", exc_info=True)
         return MCPToolError(tool_name, str(e)).to_dict()
 
 

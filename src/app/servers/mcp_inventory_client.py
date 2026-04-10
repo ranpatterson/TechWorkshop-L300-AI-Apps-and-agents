@@ -35,19 +35,33 @@ class MCPShopperToolsClient:
 
         self._exit_stack = AsyncExitStack()
 
+        logger.info(f"Starting MCP server from: {_SERVER_SCRIPT}")
+        server_script_path = Path(_SERVER_SCRIPT)
+        if not server_script_path.exists():
+            raise FileNotFoundError(f"MCP server script not found at: {_SERVER_SCRIPT}")
+
+        # Pass environment variables to subprocess to ensure Azure credentials and config are available
+        import os as _os
+        env = _os.environ.copy()
+
         server_params = StdioServerParameters(
             command=sys.executable,
             args=[_SERVER_SCRIPT],
+            env=env,
         )
 
-        read, write = await self._exit_stack.enter_async_context(
-            stdio_client(server_params)
-        )
-        self._session = await self._exit_stack.enter_async_context(
-            ClientSession(read, write)
-        )
-        await self._session.initialize()
-        logger.info("MCP client connected via stdio")
+        try:
+            read, write = await self._exit_stack.enter_async_context(
+                stdio_client(server_params)
+            )
+            self._session = await self._exit_stack.enter_async_context(
+                ClientSession(read, write)
+            )
+            await self._session.initialize()
+            logger.info("MCP client connected via stdio")
+        except Exception as e:
+            logger.error(f"Failed to connect to MCP server: {e}", exc_info=True)
+            raise
 
     async def close(self) -> None:
         """Close the persistent connection."""
